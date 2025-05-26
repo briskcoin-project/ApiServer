@@ -40,9 +40,9 @@ class General():
     @classmethod
     @cache.memoize(timeout=1)
     def getprice(cls):
-        #result = utils.getprice()
-        #return result
-        return {"":""}
+        result = utils.getprice()
+        return result
+        #return {"":""}
 
     @classmethod
     def fee(cls):
@@ -73,8 +73,8 @@ class General():
 
         return data
 
-    @classmethod
-    @cache.memoize(timeout=600)
-    def price(cls):
-        link = "https://api.coingecko.com/api/v3/simple/price?ids=briskcoin&vs_currencies=usd,btc"
-        return requests.get(link).json()
+    #@classmethod
+    #@cache.memoize(timeout=600)
+    #def price(cls):
+    #    link = "https://api.coingecko.com/api/v3/simple/price?ids=briskcoin&vs_currencies=usd,btc"
+    #    return requests.get(link).json()

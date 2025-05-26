@@ -10,7 +10,12 @@ from urllib.parse import urlparse
 from urllib.parse import parse_qs
 import decimal
 import sys
-
+import ssl
+import time
+import traceback
+import subprocess
+# Increase recursion limit
+sys.setrecursionlimit(10000)
 
 def dead_response(message="Invalid Request", rid=config.rid):
     return {"error": {"code": 404, "message": message}, "id": rid}
@@ -108,88 +113,71 @@ def satoshis(value):
 def amount(value):
     return round(value / math.pow(10, 8), 8)
 
-def getprice_back():
-    import logging
-    ticker = "BKC"
-    coin_name = "briskcoin"
-    setactive = "Active"
-    price = requests.get(f"https://api.coingecko.com/api/v3/simple/price?ids="+coin_name+"&vs_currencies=usd,btc").json()
-    price_v2 = requests.get(f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids="+coin_name).json()
-    
-    price2 = requests.get(f"https://api.coinpaprika.com/v1/ticker/"+ticker+"-"+coin_name).json()
-    price2_v2 = requests.get(f"https://api.coinpaprika.com/v1/tickers/"+ticker+"-"+coin_name).json()
-        
-    if len(price)>0 and len(price2)>0 and price2_v2['error']!="id not found":
-        cg_lastupdate = price_v2[0]['last_updated']
-        if len(price2_v2['error'])>0:
-            cp_lastupdate = '1000-07-19 17:31:00'
-        else:
-            cp_lastupdate = price2_v2['last_updated']
-            
-        format_data = "%Y-%m-%d %H:%M:%S"     
-        
-        print('cp_lastupdate'+str(cp_lastupdate),flush=True)
-        
-        ddate1 = parse(cg_lastupdate)
-        ddate2 = parse(cp_lastupdate)
-        
-        cp_substr1_date = str(price_v2[0]['last_updated']).split("T")
-        cp_substr1_time = str(cp_substr1_date[1]).split(".")
-        
-        cp_comb_dt = cp_substr1_date[0] + " " + cp_substr1_time[0]
-        cp_comb_cd = datetime.strptime(cp_comb_dt, format_data)
-        
-        dt2 = (datetime.fromtimestamp(int(price2['last_updated'])) - timedelta(hours=2)).strftime('%Y-%m-%d %H:%M:%S')
-        dt2_cd = datetime. strptime(dt2, format_data)
-        
-        if cp_comb_cd > dt2_cd:
-            btc = float(price[coin_name]['btc'])
-            usd = float(price[coin_name]['usd'])
-            msg = setactive
-        else:
-            btc = float(price2["price_btc"])
-            usd = float(price2["price_usd"])
-            msg = setactive
-    elif len(price)>0:
-        print('condition 2')
-        btc = float(price[coin_name]['btc'])
-        usd = float(price[coin_name]['usd'])
-        msg = setactive
-    elif len(price2)>0:
-        print('condition 3')
-        btc = float(price2["price_btc"])
-        usd = float(price2["price_usd"])
-        msg = setactive     
-    else:
-         msg = "Error market cap connection"
-    return {
-        "price_btc": ('%.8f' % btc),
-        "price_usd": ('%.8f' % usd),
-        "status": msg
-    }
-        
 def getprice():
+    try:
+        result = subprocess.run(
+        ["python3", "/root/api-server/gen_price.py"],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        btc = 0.0
+        usd = 0.0
+        try:
+            with open('/root/api-server/price.log', 'r') as file:
+                content = file.read().strip()
 
-    ticker = "BKC"
-    coin_name = "briskcoin"
-    setactive = "Active"
+            if not content:
+                print("The file is empty.")
+            else:
+                parts = content.split(',')
+                parts = [part.strip() for part in parts]
 
-    price = requests.get(f"http://cmcdata.briskcoin.org?val=coingecko",verify=False, timeout=10).json()
-    price2 = requests.get(f"http://cmcdata.briskcoin.org?val=coinparika").json()
-    
-    if len(price)>0:
-        btc = float(price[coin_name]['btc'])
-        usd = float(price[coin_name]['usd'])
-        msg = setactive
-    elif len(price2)>0:
-        btc = float(price2["price_btc"])
-        usd = float(price2["price_usd"])
-        msg = setactive           
-    else:
-        msg = "Error market cap connection"
-    return {
-        "price_btc": ('%.8f' % btc),
-        "price_usd": ('%.8f' % usd),
-        "status": msg
-    }
+                if len(parts) >= 2:
+                    usd = parts[0]
+                    btc = parts[1]
+                    #print(f"Part 0: {usd}")
+                    #print(f"Part 1: {btc}")
+                else:
+                    print("The file does not contain enough parts.")
+        except FileNotFoundError:
+            print("The file '/root/api-server/price.log' was not found.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
 
+        return {
+            "price_btc": btc,
+            "price_usd": usd,
+            "status": "Success"
+        }
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return {
+            "price_btc": "0.00000000",
+            "price_usd": "0.00000000",
+            "status": f"Error: {str(e)}"
+        }
+
+def getprice2():
+    url = "https://api.coinpaprika.com/v1/tickers/bkc-briskcoin"
+    try:
+
+        response = real_requests.get(url, timeout=10)  
+        response.raise_for_status()
+        data = response.json()
+
+        btc = float(0.00000000)
+        usd = float(data['quotes']['USD']['price'])
+
+        return {
+            "price_btc": f"{btc:.8f}",
+            "price_usd": f"{usd:.8f}",
+            "status": "Success"
+        }
+    except Exception as e:
+        return {
+            "price_btc": "0.00000000",
+            "price_usd": "0.00000000",
+            "status": f"Error: {str(e)}"
+        }
