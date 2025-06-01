@@ -7,4 +7,5 @@ venv/*
 .DS_STORE
 config.py
 price.log
+api-key.log
 myenv
