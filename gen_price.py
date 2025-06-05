@@ -7,10 +7,7 @@ def gen_p():
     data = response.json()
     gusd = round(float(data['quotes']['USD']['price']), 10)
     fname = "price.log"
-    
-    
     livecoinwatch_api = None
-
     with open('/root/api-server/api-key.log', 'r') as file:
         for line in file:
             if 'endline' in line.lower():
