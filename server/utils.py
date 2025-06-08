@@ -115,14 +115,22 @@ def amount(value):
 
 def getprice():
     try:
-        result = subprocess.run(
-        ["python3", "/root/api-server/gen_price.py"],
-            check=True,
-            capture_output=True,
-            text=True
-        )
-        btc = 0.0
-        usd = 0.0
+        try:
+            result = subprocess.run(
+                ['python3', '/root/api-server/gen_price.py'],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            print("Subprocess output:", result.stdout)
+        except subprocess.CalledProcessError as e:
+            print("Subprocess failed:")
+            print("Return code:", e.returncode)
+            print("Output:", e.output)
+            print("Error output:", e.stderr)
+            raise
+            btc = 0.0
+            usd = 0.0
         try:
             with open('/root/api-server/price.log', 'r') as file:
                 content = file.read().strip()
