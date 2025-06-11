@@ -38,11 +38,11 @@ def reward(height):
         return 0
     return int(satoshis(50.00000000) // (2 ** halvings))
 
-def reward2(blockHeight):
+def reward2(block_height):
     halvings = 2102400
     getrw = 0
     reward = 0
-    
+
     if 1 < block_height <= 50000:
         getrw = 50
     elif 50001 <= block_height <= 100000:
@@ -54,7 +54,7 @@ def reward2(blockHeight):
         halvings_count = math.floor(block_height / halvings)
         reward = reward / (2 ** halvings_count)
         getrw = reward
-            
+
     return format(getrw, '.2f')
 
 def significant(num, signum):
